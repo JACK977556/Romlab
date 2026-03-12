@@ -1,13 +1,628 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React + TS</title>
-  </head>
-  <body>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROMLAB® | 병원 브랜드 블로그 설계</title>
+    
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap" rel="stylesheet">
+    
+    <!-- React & ReactDOM (CDN) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel (JSX Transpiler) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Framer Motion (CDN) -->
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    
+    <!-- Lucide Icons (CDN) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script shadow-sm>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'rom-blue': '#2563eb',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            overflow-x: hidden;
+            background-color: #ffffff;
+        }
+        .grid-line {
+            background-image: linear-gradient(to right, #f1f5f9 1px, transparent 1px);
+            background-size: 25% 100%;
+        }
+        .dot-grid {
+            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const { motion, AnimatePresence, useScroll, useTransform, useSpring } = window.Motion;
+
+        // Lucide Icon Component Wrapper
+        const Icon = ({ name, className }) => {
+            const iconRef = useRef(null);
+            useEffect(() => {
+                if (iconRef.current) {
+                    lucide.createIcons({
+                        icons: { [name]: lucide[name] },
+                        nameAttr: 'data-lucide'
+                    });
+                }
+            }, [name]);
+            return <i data-lucide={name} className={className}></i>;
+        };
+
+        const Reveal = ({ children, delay = 0, viewportMargin = "-100px", className = "" }) => {
+            return (
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: viewportMargin }}
+                    transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1], delay }}
+                    className={className}
+                >
+                    {children}
+                </motion.div>
+            );
+        };
+
+        const LineDraw = ({ delay = 0 }) => {
+            return (
+                <motion.div
+                    initial={{ width: 0 }}
+                    whileInView={{ width: "100%" }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 2, ease: "easeOut", delay }}
+                    className="h-[1px] bg-rom-blue mb-10"
+                />
+            );
+        };
+
+        const Crosshair = () => (
+            <div className="flex items-center justify-center w-6 h-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 0V24M0 12H24" stroke="#2563eb" strokeWidth="0.5"/>
+                    <circle cx="12" cy="12" r="3" stroke="#2563eb" strokeWidth="0.5"/>
+                </svg>
+            </div>
+        );
+
+        const SmallCrosshair = ({ color = "#2563eb" }) => (
+            <div className="w-4 h-4 flex items-center justify-center">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 0V12M0 6H12" stroke={color} strokeWidth="1.5"/>
+                </svg>
+            </div>
+        );
+
+        const CheckCircle = () => (
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="mb-6">
+                <circle cx="24" cy="24" r="23.5" stroke="#2563eb" strokeWidth="1"/>
+                <path d="M15 24.5L21 30.5L33 18.5" stroke="#2563eb" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+        );
+
+        const XCircle = () => (
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="mb-6">
+                <circle cx="24" cy="24" r="23.5" stroke="#94a3b8" strokeWidth="1"/>
+                <path d="M18 18L30 30M30 18L18 30" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+        );
+
+        const AccordionItem = ({ question, answer, isOpen, onClick }) => {
+            return (
+                <div className="border-b border-slate-200">
+                    <button
+                        className="w-full py-8 flex justify-between items-center text-left group transition-all"
+                        onClick={onClick}
+                    >
+                        <span className="text-lg md:text-xl font-bold text-[#1A1A1A] group-hover:text-blue-600 transition-colors">
+                            {question}
+                        </span>
+                        <motion.div
+                            animate={{ rotate: isOpen ? 45 : 0 }}
+                            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                            className="flex-shrink-0 ml-4"
+                        >
+                            <Icon name="Plus" className={`w-6 h-6 ${isOpen ? 'text-blue-600' : 'text-[#1A1A1A]'}`} />
+                        </motion.div>
+                    </button>
+                    <AnimatePresence initial={false}>
+                        {isOpen && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                                className="overflow-hidden"
+                            >
+                                <div className="pb-8 pr-12 text-slate-700 font-light leading-relaxed whitespace-pre-line">
+                                    {answer}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            );
+        };
+
+        function App() {
+            const [openFaqIndex, setOpenFaqIndex] = useState(null);
+            const [isScrolled, setIsScrolled] = useState(false);
+            const [hoveredSide, setHoveredSide] = useState(null);
+            const processRef = useRef(null);
+            
+            const { scrollYProgress } = useScroll({
+                target: processRef,
+                offset: ["start center", "end center"]
+            });
+
+            const scaleY = useSpring(scrollYProgress, {
+                stiffness: 100,
+                damping: 30,
+                restDelta: 0.001
+            });
+
+            const dotY = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
+
+            useEffect(() => {
+                const handleScroll = () => {
+                    setIsScrolled(window.scrollY > 0);
+                };
+                window.addEventListener('scroll', handleScroll);
+                return () => window.removeEventListener('scroll', handleScroll);
+            }, []);
+
+            return (
+                <div className="overflow-x-hidden font-sans selection:bg-rom-blue selection:text-white">
+                    {/* Background Grid Lines */}
+                    <div className="fixed inset-0 pointer-events-none z-0">
+                        <div className="absolute left-1/4 h-full w-[1px] bg-slate-100 hidden md:block"></div>
+                        <div className="absolute left-2/4 h-full w-[1px] bg-slate-100 hidden md:block"></div>
+                        <div className="absolute left-3/4 h-full w-[1px] bg-slate-100 hidden md:block"></div>
+                    </div>
+
+                    {/* Navigation */}
+                    <nav 
+                        className={`fixed top-0 w-full px-6 py-4 md:pl-12 md:pr-16 flex justify-between items-center z-50 transition-all duration-500 ease-in-out ${
+                            isScrolled 
+                                ? "bg-white text-slate-900 shadow-sm border-b border-slate-100" 
+                                : "bg-transparent text-white border-b border-white/10"
+                        }`}
+                    >
+                        <div className="font-black text-2xl tracking-tighter">ROMLAB®</div>
+                        
+                        <div className="flex items-center gap-12">
+                            <div className="hidden lg:flex items-center gap-12 text-[13px] font-bold tracking-[0.3em] uppercase">
+                                <a href="#" className="hover:opacity-60 transition-opacity">SYSTEM</a>
+                                <a href="#" className="hover:opacity-60 transition-opacity">COLUMN</a>
+                                <a href="#" className="hover:opacity-60 transition-opacity">PROCESS</a>
+                                <a href="#" className="hover:opacity-60 transition-opacity">FAQ</a>
+                            </div>
+                            <a 
+                                href="#" 
+                                className="bg-[#FF4D4D] text-white px-8 py-3 rounded-full text-[12px] font-black tracking-[0.15em] uppercase hover:bg-[#ff3333] transition-all active:scale-95 shadow-lg shadow-red-500/20 whitespace-nowrap"
+                            >
+                                블로그 진단 요청하기
+                            </a>
+                        </div>
+                    </nav>
+
+                    {/* Hero Section */}
+                    <section className="relative min-h-screen flex flex-col justify-center p-6 md:p-20 border-b grid-line overflow-hidden bg-slate-950">
+                        <div className="absolute inset-0 z-0">
+                            <video
+                                autoPlay
+                                muted
+                                loop
+                                playsInline
+                                className="w-full h-full object-cover opacity-40 contrast-125"
+                            >
+                                <source
+                                    src="https://res.cloudinary.com/dwylfmmko/video/upload/2851693-hd_1920_1080_30fps_aemggh.mp4"
+                                    type="video/mp4"
+                                />
+                            </video>
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/50"></div>
+                        </div>
+
+                        <div className="relative z-10 max-w-screen-xl mx-auto w-full">
+                            <Reveal delay={0.1}>
+                                <p className="text-blue-500 font-bold tracking-[0.6em] mb-8 text-sm md:text-lg uppercase">
+                                    BEYOND EXPOSURE.
+                                </p>
+                            </Reveal>
+                            
+                            <Reveal delay={0.3}>
+                                <h1 className="text-4xl md:text-7xl lg:text-8xl font-bold text-white leading-[1.1] tracking-tight mb-12 max-w-[15ch] md:max-w-[18ch]">
+                                    병원 브랜드 블로그, <br className="hidden md:block" />
+                                    노출이 아니라 <span className="text-blue-500">신뢰와 선택</span>까지 설계합니다
+                                </h1>
+                            </Reveal>
+                            
+                            <div className="max-w-3xl">
+                                <Reveal delay={0.5}>
+                                    <p className="text-lg md:text-2xl text-white/80 leading-relaxed font-light">
+                                        병원의 강점을 콘텐츠로 구조화하고, <br className="hidden md:block" />
+                                        의료광고 표현 리스크까지 점검해 신뢰가 남는 블로그를 설계합니다.
+                                    </p>
+                                </Reveal>
+                            </div>
+                            
+                            <Reveal delay={0.7}>
+                                <div className="mt-16 flex flex-wrap gap-6">
+                                    <a href="#" className="px-10 py-5 bg-white text-slate-950 font-bold text-sm tracking-widest uppercase hover:bg-blue-500 hover:text-white transition-all duration-500">
+                                        진단 요청하기
+                                    </a>
+                                    <a href="#" className="px-10 py-5 border border-white/20 text-white font-bold text-sm tracking-widest uppercase hover:bg-white/10 transition-all duration-500">
+                                        포트폴리오 보기
+                                    </a>
+                                </div>
+                            </Reveal>
+                        </div>
+                    </section>
+
+                    {/* The Problem Section */}
+                    <section className="py-40 px-6 md:px-20 border-b grid-line bg-white relative">
+                        <div className="max-w-screen-xl mx-auto grid md:grid-cols-12 gap-12">
+                            <div className="md:col-span-5">
+                                <Reveal>
+                                    <p className="text-[10px] font-bold text-blue-600 mb-8 tracking-[0.4em] uppercase">01. THE PROBLEM</p>
+                                    <h2 className="text-4xl md:text-6xl font-black leading-tight text-slate-900">
+                                        상위 노출만으로는<br />예약이 만들어지지<br /><span className="text-blue-200">않습니다.</span>
+                                    </h2>
+                                </Reveal>
+                            </div>
+                            <div className="md:col-span-7 flex flex-col justify-center">
+                                <Reveal delay={0.5}>
+                                    <LineDraw />
+                                    <p className="text-xl md:text-2xl font-light text-slate-600 leading-relaxed mb-8">
+                                        검색 결과 상단에 위치하는 것은 '기회'일 뿐 '결과'가 아닙니다. 환자가 예약 버튼을 누르지 않는 이유는 명확합니다. 
+                                        <span className="text-rom-blue font-bold ml-1">글 속에 이 병원을 선택해야만 하는 논리적 증거가 누락되었기 때문입니다.</span>
+                                    </p>
+                                    <p className="text-sm text-slate-400 font-mono">
+                                        // 우리는 막연한 노출보다, 선택으로 이어지는 구조를 설계합니다.
+                                    </p>
+                                </Reveal>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Blueprint Section */}
+                    <section className="py-32 bg-rom-blue text-white overflow-hidden relative">
+                        <div className="max-w-screen-xl mx-auto px-6 md:px-20">
+                            <h2 className="text-[6.5vw] font-black tracking-tighter mb-10 leading-none opacity-5 select-none">BLUEPRINT</h2>
+                            
+                            <div className="grid md:grid-cols-3 border-t border-white/20 -mt-4">
+                                <div className="pt-12 pb-20 md:pr-10 border-b md:border-b-0 md:border-r border-white/10">
+                                    <Reveal delay={0.1}>
+                                        <span className="text-xs font-mono text-blue-300 mb-6 block">PHASE_01</span>
+                                        <h3 className="text-2xl font-bold mb-6">리스크 사전 차단 설계</h3>
+                                        <p className="text-white/80 text-lg leading-relaxed font-light">
+                                            의료법 위반은 변수가 아닌, 기획 단계에서 제거되어야 할 '상수'입니다. 간호학적 데이터베이스를 기반으로 위험 표현을 원천 봉쇄합니다.
+                                        </p>
+                                    </Reveal>
+                                </div>
+                                <div className="pt-12 pb-20 md:px-10 border-b md:border-b-0 md:border-r border-white/10">
+                                    <Reveal delay={0.3}>
+                                        <span className="text-xs font-mono text-blue-300 mb-6 block">PHASE_02</span>
+                                        <h3 className="text-2xl font-bold mb-6">환자 의사결정 설계</h3>
+                                        <p className="text-white/80 text-lg leading-relaxed font-light">
+                                            환자의 결핍과 욕망을 분석하여 예약 전 거치는 심리적 비교 문턱을 무력화합니다. 모든 배치는 설득의 공학을 따릅니다.
+                                        </p>
+                                    </Reveal>
+                                </div>
+                                <div className="pt-12 pb-20 md:pl-10">
+                                    <Reveal delay={0.5}>
+                                        <span className="text-xs font-mono text-blue-300 mb-6 block">PHASE_03</span>
+                                        <h3 className="text-2xl font-bold mb-6">병원다움의 언어화</h3>
+                                        <p className="text-white/80 text-lg leading-relaxed font-light">
+                                            원장님만의 판단 기준을 시장 내 독보적인 콘텐츠 언어로 재정의합니다. 누구도 흉내 낼 수 없는 브랜드의 고유성을 각인시킵니다.
+                                        </p>
+                                    </Reveal>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Ideal Partnership Section */}
+                    <section className="py-40 bg-white border-b grid-line relative overflow-hidden">
+                        <div className="max-w-screen-xl mx-auto px-6 md:px-20 relative">
+                            <div className="grid md:grid-cols-2 gap-0 relative">
+                                <div className="absolute left-1/2 top-0 bottom-0 w-[1px] bg-slate-100 hidden md:block -translate-x-1/2">
+                                    <motion.div 
+                                        animate={{ 
+                                            width: hoveredSide ? 2 : 1,
+                                            backgroundColor: hoveredSide === 'left' ? "#2563eb" : hoveredSide === 'right' ? "#94a3b8" : "#f1f5f9",
+                                            x: hoveredSide === 'left' ? -0.5 : hoveredSide === 'right' ? 0.5 : 0
+                                        }}
+                                        className="h-full mx-auto"
+                                    />
+                                </div>
+                                
+                                <motion.div 
+                                    onMouseEnter={() => setHoveredSide('left')}
+                                    onMouseLeave={() => setHoveredSide(null)}
+                                    whileHover={{ backgroundColor: "rgba(248, 250, 252, 0.5)" }}
+                                    className="md:pr-20 pb-20 md:pb-0 transition-colors duration-500 rounded-3xl p-8 -ml-8"
+                                >
+                                    <Reveal>
+                                        <motion.div 
+                                            animate={{ opacity: hoveredSide === 'left' || !hoveredSide ? 1 : 0.5 }}
+                                            transition={{ duration: 0.4 }}
+                                        >
+                                            <p className="text-[10px] font-bold text-blue-600 mb-8 tracking-[0.4em] uppercase">03. IDEAL PARTNERSHIP</p>
+                                            <CheckCircle />
+                                            <h2 className="text-3xl font-black text-[#1A1A1A] mb-6 tracking-tight">이런 병원과 잘 맞습니다</h2>
+                                            <p className="text-slate-500 text-lg font-light leading-relaxed mb-16">
+                                                단기 노출보다, 병원의 진료 방향과 신뢰가 글에 남는 운영을 원하는 경우에 적합합니다.
+                                            </p>
+                                            
+                                            <div className="space-y-4">
+                                                {[
+                                                    { title: "진료 철학 정리", desc: "단순 홍보보다, 왜 이런 진료를 하는지 글로 설명하고 싶은 경우에 잘 맞습니다." },
+                                                    { title: "의료광고 리스크 관리", desc: "자극적인 문구보다, 실제 운영 가능한 표현 기준을 함께 맞추고 싶은 경우에 적합합니다." },
+                                                    { title: "누적 자산 운영", desc: "짧은 반응보다, 병원 이미지와 신뢰가 쌓이는 구조를 원하는 경우에 적합합니다." }
+                                                ].map((item, i) => (
+                                                    <div key={i} className="flex gap-4 p-4 rounded-xl">
+                                                        <div className="mt-1"><SmallCrosshair /></div>
+                                                        <div>
+                                                            <h4 className="font-bold text-[#1A1A1A] mb-2 text-lg">{item.title}</h4>
+                                                            <p className="text-slate-500 text-sm leading-relaxed">{item.desc}</p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </motion.div>
+                                    </Reveal>
+                                </motion.div>
+
+                                <motion.div 
+                                    onMouseEnter={() => setHoveredSide('right')}
+                                    onMouseLeave={() => setHoveredSide(null)}
+                                    whileHover={{ backgroundColor: "rgba(248, 250, 252, 0.5)" }}
+                                    className="md:pl-20 pt-20 md:pt-0 border-t md:border-t-0 border-slate-100 transition-colors duration-500 rounded-3xl p-8 -mr-8"
+                                >
+                                    <Reveal delay={0.3}>
+                                        <motion.div 
+                                            animate={{ opacity: hoveredSide === 'right' ? 1 : 0.75 }}
+                                            transition={{ duration: 0.4 }}
+                                        >
+                                            <p className="text-[10px] font-bold text-slate-400 mb-8 tracking-[0.4em] uppercase">EXCEPTION</p>
+                                            <XCircle />
+                                            <h2 className="text-3xl font-black text-slate-500 mb-6 tracking-tight">이런 요청과는 맞지 않습니다</h2>
+                                            <p className="text-slate-400 text-lg font-light leading-relaxed mb-16">
+                                                운영 방향과 기준이 맞지 않는 경우에는 협업 효율이 떨어질 수 있습니다.
+                                            </p>
+                                            
+                                            <div className="space-y-4">
+                                                {[
+                                                    { title: "상위노출 보장 우선", desc: "노출 자체보다, 병원에 맞는 방향과 콘텐츠 구조를 먼저 봅니다." },
+                                                    { title: "과장된 홍보", desc: "의료광고 리스크를 무시한 방식과는 맞지 않습니다." },
+                                                    { title: "기준 없는 대량 발행", desc: "기준 없이 빠르게 찍어내는 방식보다, 방향을 정리한 뒤 밀도 있게 운영하는 쪽에 가깝습니다." }
+                                                ].map((item, i) => (
+                                                    <div key={i} className="flex gap-4 p-4 rounded-xl">
+                                                        <div className="mt-1"><SmallCrosshair color="#94a3b8" /></div>
+                                                        <div>
+                                                            <h4 className="font-bold text-slate-500 mb-2 text-lg">{item.title}</h4>
+                                                            <p className="text-slate-400 text-sm leading-relaxed">{item.desc}</p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </motion.div>
+                                    </Reveal>
+                                </motion.div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Process Section */}
+                    <section ref={processRef} className="py-24 bg-white relative overflow-hidden dot-grid">
+                        <div className="max-w-screen-xl mx-auto px-6 md:px-20 relative">
+                            <div className="absolute left-6 md:left-20 top-0 bottom-0 w-[1px] bg-slate-100">
+                                <motion.div style={{ scaleY, originY: 0 }} className="absolute inset-0 w-full bg-blue-600 origin-top" />
+                                <motion.div style={{ top: dotY }} className="absolute left-1/2 -translate-x-1/2 w-3 h-3 bg-blue-600 rounded-full shadow-[0_0_15px_rgba(37,99,235,0.6)] z-10" />
+                            </div>
+                            
+                            <div className="pl-12 md:pl-32">
+                                <Reveal viewportMargin="-20px">
+                                    <p className="text-[10px] font-bold text-blue-600 mb-8 tracking-[0.4em] uppercase">02. PROCESS</p>
+                                    <h2 className="text-4xl md:text-6xl font-black leading-tight text-[#1A1A1A] mb-20">
+                                        문제를 짚는 것에서 끝나지 않습니다.<br />
+                                        실제 운영은 아래의 4단계로 움직입니다.
+                                    </h2>
+                                </Reveal>
+
+                                <div className="space-y-32">
+                                    {[
+                                        { step: "01", title: "진단", desc: "현재 블로그의 의료광고 리스크와 설득 구조의 허점을 점검합니다." },
+                                        { step: "02", title: "설계", desc: "병원의 진료 철학과 강점을 바탕으로, 어떤 방향의 콘텐츠를 쌓아야 할지 구조를 설계합니다." },
+                                        { step: "03", title: "작성", desc: "설계된 방향에 따라 원고를 작성하고, 환자가 이해하기 쉬운 언어로 내용을 정리합니다." },
+                                        { step: "04", title: "점검", desc: "발행 전 표현과 흐름을 점검하고, 수정이 필요한 부분을 정리해 완성도를 높입니다." }
+                                    ].map((item, idx) => (
+                                        <div key={idx} className="flex items-center">
+                                            <Reveal delay={0.1} viewportMargin="-20px">
+                                                <div className="relative group">
+                                                    <div className="absolute -left-12 md:-left-[60px] top-2"><Crosshair /></div>
+                                                    <div className="flex flex-col gap-6">
+                                                        <span className="text-xs font-mono font-bold text-slate-400 tracking-widest">STEP {item.step}</span>
+                                                        <div className="max-w-3xl">
+                                                            <h3 className="text-5xl md:text-7xl font-black mb-8 tracking-tight text-[#1A1A1A]">{item.title}</h3>
+                                                            <p className="text-slate-500 leading-relaxed text-xl md:text-2xl font-light">{item.desc}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </Reveal>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Pricing Section */}
+                    <section className="py-40 bg-white border-b relative overflow-hidden">
+                        <div className="max-w-screen-xl mx-auto px-6 md:px-20 relative">
+                            <Reveal>
+                                <div className="mb-24">
+                                    <p className="text-[10px] font-bold text-blue-600 mb-8 tracking-[0.4em] uppercase">06. PRICING</p>
+                                    <h2 className="text-4xl md:text-5xl font-black text-[#1A1A1A] tracking-tight leading-tight">
+                                        병원의 규모가 아닌, <br /> 필요한 설계의 깊이를 선택하십시오.
+                                    </h2>
+                                </div>
+                            </Reveal>
+
+                            <div className="grid md:grid-cols-3 relative">
+                                <div className="absolute left-1/3 top-0 bottom-0 w-[1px] bg-slate-100 hidden md:block"></div>
+                                <div className="absolute left-2/3 top-0 bottom-0 w-[1px] bg-slate-100 hidden md:block"></div>
+
+                                {[
+                                    {
+                                        tier: "BASIC",
+                                        title: "DIAGNOSIS (기본 진단형)",
+                                        price: "160,000원 + VAT",
+                                        totalPrice: "총 결제금액 176,000원",
+                                        points: ["월간 기본 발행", "현재 블로그 상태 점검", "기본 방향 정리", "표현/문장 검수", "수정 1회"],
+                                        highlight: false
+                                    },
+                                    {
+                                        tier: "STANDARD",
+                                        title: "BLUEPRINT (운영 동반형)",
+                                        price: "225,000원 + VAT",
+                                        totalPrice: "총 결제금액 247,500원",
+                                        points: ["월간 운영 발행", "병원 강점 기반 콘텐츠 방향 설계", "표현 검수 강화", "수정 2회", "월간 운영 리포트 제공"],
+                                        highlight: true,
+                                        tag: "RECOMMENDED"
+                                    },
+                                    {
+                                        tier: "PREMIUM",
+                                        title: "LAB CARE (전략 확장형)",
+                                        price: "320,000원 + VAT",
+                                        totalPrice: "총 결제금액 352,000원",
+                                        points: ["월간 확장 운영", "콘텐츠 방향 설계 + 운영 제안", "표현 검수 및 흐름 점검 강화", "수정 2회", "격주 피드백", "우선 일정 반영"],
+                                        highlight: false
+                                    }
+                                ].map((plan, idx) => (
+                                    <motion.div
+                                        key={idx}
+                                        whileHover={{ backgroundColor: "rgba(241, 245, 249, 0.5)" }}
+                                        className={`flex flex-col p-10 md:p-12 transition-all duration-500 group relative ${plan.highlight ? "z-10" : "z-0"}`}
+                                    >
+                                        {plan.highlight && <div className="absolute inset-0 border-2 border-rom-blue pointer-events-none"></div>}
+                                        {plan.tag && <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-rom-blue text-white text-[10px] font-black tracking-widest px-4 py-1 z-20">{plan.tag}</div>}
+
+                                        <div className="mb-12">
+                                            <span className={`text-xs font-mono font-bold tracking-widest mb-4 block ${plan.highlight ? "text-blue-600" : "text-slate-400"}`}>[{plan.tier}]</span>
+                                            <h3 className="text-xl font-bold text-slate-900 mb-2 tracking-tight">{plan.title}</h3>
+                                            <div className={`text-3xl font-black mb-1 ${plan.highlight ? "text-rom-blue" : "text-slate-900"}`}>{plan.price}</div>
+                                            <div className="text-sm font-bold text-slate-500 mb-6">{plan.totalPrice}</div>
+                                        </div>
+
+                                        <div className="space-y-4 mb-16 flex-grow">
+                                            {plan.points.map((point, pIdx) => (
+                                                <div key={pIdx} className="flex gap-3 items-start">
+                                                    <div className="mt-1.5"><SmallCrosshair color={plan.highlight ? "#2563eb" : "#94a3b8"} /></div>
+                                                    <span className="text-sm font-bold text-slate-800 group-hover:text-slate-900 transition-colors">{point}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <a href="#" className={`w-full py-4 text-center text-xs font-black tracking-[0.2em] uppercase transition-all active:scale-95 group-hover:scale-[1.02] group-hover:shadow-xl ${plan.highlight ? "bg-rom-blue text-white hover:bg-blue-800 shadow-lg shadow-blue-900/20" : "bg-slate-200 text-slate-900 hover:bg-slate-300"}`}>문의하기</a>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* FAQ Section */}
+                    <section className="py-40 bg-white border-b relative overflow-hidden">
+                        <div className="max-w-screen-xl mx-auto px-6 md:px-20 relative">
+                            <Reveal>
+                                <div className="mb-20">
+                                    <p className="text-[10px] font-bold text-blue-600 mb-8 tracking-[0.4em] uppercase">05. FAQ</p>
+                                    <h2 className="text-3xl md:text-4xl font-bold text-[#1A1A1A] tracking-tight">협업 전, 가장 많이 묻는 질문입니다.</h2>
+                                </div>
+                            </Reveal>
+                            <div className="max-w-4xl">
+                                {[
+                                    { question: "1. 포트폴리오가 아직 많지 않은데, 어떻게 진행하나요?", answer: "초기 협업 단계인 만큼, 병원별 방향 정리와 표현 점검에 더 밀도 있게 시간을 쓰고 있습니다.\n\n대량 운영보다 기준이 맞는 병원과의 협업을 우선하며, 작업 전 현재 블로그 상태와 필요한 방향을 먼저 확인합니다." },
+                                    { question: "2. 어떤 자료가 필요하나요?", answer: "기본적으로는 진료 과목, 주요 시술·진료 내용, 원장님의 진료 방향, 병원 소개 자료가 있으면 충분합니다.\n\n자료가 정리되어 있지 않아도 진행은 가능하며, 필요한 항목은 협업 전 단계에서 함께 정리합니다." },
+                                    { question: "3. 원고만 따로 맡길 수도 있나요?", answer: "가능합니다.\n\n다만 원고만 진행하는 경우에도 병원의 방향, 표현 기준, 타겟 환자 관점은 먼저 확인한 뒤 작업합니다.\n\n방향 정리 없이 글만 빠르게 작성하는 방식과는 다르게 진행합니다." },
+                                    { question: "4. 상위노출을 보장하나요?", answer: "상위노출 자체를 보장하는 방식으로 운영하지 않습니다.\n\n대신 의료광고 표현 리스크를 점검하고, 병원의 강점과 진료 방향이 신뢰 있게 전달되도록 콘텐츠 구조와 문장을 설계합니다." },
+                                    { question: "5. 수정은 어느 범위까지 가능한가요?", answer: "초안 전달 후 표현, 흐름, 방향 조정이 필요한 부분은 수정 가능합니다.\n\n다만 처음 합의한 주제와 방향이 크게 바뀌는 경우에는 수정 범위를 다시 조율합니다.\n\n작업 전 기준을 먼저 맞추는 이유도 이 부분 때문입니다." },
+                                    { question: "6. 어떤 병원과 잘 맞나요?", answer: "단기 노출보다 병원의 진료 철학, 신뢰, 설명 구조를 블로그에 정리하고 싶은 병원과 잘 맞습니다.\n\n반대로 무조건적인 상위노출 보장이나 자극적인 홍보 문구 중심의 운영을 원하시는 경우에는 방향이 다를 수 있습니다." },
+                                    { question: "7. 협업 시 최소 계약 기간이 정해져 있나요?", answer: "네. 1개월 단위로도 진행 가능합니다.\n\n다만 브랜드 블로그는 단기간에 판단하기보다, 일정 기간 콘텐츠가 누적되면서 방향이 잡히는 방식에 더 가깝습니다." }
+                                ].map((faq, idx) => (
+                                    <AccordionItem
+                                        key={idx}
+                                        question={faq.question}
+                                        answer={faq.answer}
+                                        isOpen={openFaqIndex === idx}
+                                        onClick={() => setOpenFaqIndex(openFaqIndex === idx ? null : idx)}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Footer */}
+                    <footer className="p-10 md:p-20 bg-slate-50 border-t grid-line text-slate-400 text-[10px] uppercase tracking-widest">
+                        <div className="flex flex-col md:flex-row justify-between items-start gap-10">
+                            <div>
+                                <div className="font-black text-slate-900 text-lg mb-4 tracking-tighter">ROMLAB®</div>
+                                <p>Medical Branding & Copywriting Strategic Lab</p>
+                                <p className="mt-1">Busan, South Korea</p>
+                            </div>
+                            <div className="text-right">
+                                <p>© 2026 ROMLAB. ALL RIGHTS RESERVED.</p>
+                                <p className="mt-1">DESIGNED BY ROMLAB STRATEGIC SYSTEM</p>
+                            </div>
+                        </div>
+                    </footer>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
 </html>
